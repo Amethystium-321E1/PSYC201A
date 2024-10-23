@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- this is where we can load packages and files that we will use to help us build the experiment -->
+    <title>rt experiment</title>
+    <script src="https://unpkg.com/jspsych@8.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-image-keyboard-response@2.0.0"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-survey-html-form@2.0.0"></script>
+    <link href="https://unpkg.com/jspsych@8.0.0/css/jspsych.css" rel="stylesheet" type="text/css" />
+    <script src="https://unpkg.com/@jspsych/plugin-preload@2.0.0"></script>
+</head>
+
+<body>
+</body>
+<script>
+    var jsPsych = initJsPsych({
+        on_finish: function () {
+            jsPsych.data.displayData();
+        }
+    });
+    var timeline = [];
+    var welcome = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: "Welcome to the experiment. Press any key to begin."
+    };
+    var color_blind_check = {
+        type: jsPsychSurveyHtmlForm,
+        html: '<p>Are you colorblind?</p>' +
+            '<label><input type="radio" name="color_blind" value="no"> No</label><br>' +
+            '<label><input type="radio" name="color_blind" value="yes"> Yes</label><br>',
+        button_label: 'Submit',
+        on_finish: function (data) {
+            var response = JSON.parse(data.responses).color_blind;
+            console.log("You have chosen: " + response);
+        }
+        //To be fixed
+    };
+    var instructions = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: `
+    <p>In this experiment, a circle will appear in the center 
+    of the screen.</p><p>If the circle is <strong>blue</strong>, 
+    press the letter B on the keyboard as fast as you can.</p>
+    <p>If the circle is <strong>orange</strong>, press the letter O 
+    as fast as you can.</p>
+    <p>Press any key to begin.</p>
+  `
+    };
+    var blue_trial = {
+        type: jsPsychImageKeyboardResponse,
+        stimulus: 'images/blue.png',
+        choices: ['b', 'o'],
+        prompt: "<p>Press the b key if the circle is blue and the o key if the circle is orange.</p>",
+        post_trial_gap: 1000,
+        on_finish: function (data) {
+            var correctResponse = 'b';
+            if (data.response == correctResponse) {
+                jsPsych.data.addDataToLastTrial({ correct: true });
+                alert("Correct!");
+            } else {
+                jsPsych.data.addDataToLastTrial({ correct: false });
+                alert("Wrong!");
+            }
+        }
+    };
+    var orange_trial = {
+        type: jsPsychImageKeyboardResponse,
+        stimulus: 'images/orange.png',
+        choices: ['b', 'o'],
+        prompt: "<p>Press the b key if the circle is blue and the o key if the circle is orange.</p>",
+        post_trial_gap: 1000,
+        on_finish: function (data) {
+            var correctResponse = 'o';
+            if (data.response == correctResponse) {
+                jsPsych.data.addDataToLastTrial({ correct: true });
+                alert("Correct!");
+            } else {
+                jsPsych.data.addDataToLastTrial({ correct: false });
+                alert("Wrong!");
+            }
+        }
+    };
+    var preload = {
+        type: jsPsychPreload,
+        images: ['images/blue.png', 'images/orange.png']
+    };
+    timeline.push(preload);
+    timeline.push(welcome, color_blind_check);
+    timeline.push(instructions, blue_trial, orange_trial);
+    jsPsych.run(timeline);
+    //this is where we will write JavaScript code to control the experiments
+</script>
+
+</html>
