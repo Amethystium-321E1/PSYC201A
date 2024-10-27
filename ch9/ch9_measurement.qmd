@@ -1,0 +1,135 @@
+---
+title: "Measurement Simulations: Test-Retest Reliability"
+format: html
+editor: visual
+---
+
+# Setup
+
+## Learning goals
+
+1.  Simulate data for two experiments and compute test-retest reliability
+2.  Practice some tidyverse (`pivot_longer`, `mutate`, `select`, and add onto existing base ggplot skills (`geom_point`, `geom_jitter`, `facet_wrap`, `geom_line`)
+3.  Run a basic correlation (`cor.test` and interpret differences in observed reliability based on differences in the simulated data)
+
+## Import the libraries we need
+
+```{r}
+library(tidyverse)
+library(ggplot2) # plotting
+
+```
+
+## Define the simulation function - same as before
+
+This makes "tea data", a tibble (dataframe) where there are a certain number of people in each condition (default = 48, i.e., n_total, with n_total/2 in each half)
+
+The averages of the two conditions are separated by a known effect ("delta") with some variance ("sigma"). You can change these around since we're simulating data!
+
+```{r}
+set.seed(123) # good practice to set a random seed, or else different runs get you different results
+```
+
+```{r}
+make_tea_data <- function(n_total = 48,
+                          sigma = 1.25,
+                          delta = 1.5) {
+  n_half <- n_total / 2
+  tibble(condition = c(rep("milk first", n_half), rep("tea first", n_half)),
+         rating = c(round(
+           rnorm(n_half, mean = 3.5 + delta, sd = sigma)
+         ),
+         round(rnorm(
+           n_half, mean = 3.5, sd = sigma
+         )))) |>
+    mutate(rating = if_else(rating > 10, 10, rating),
+           # truncate if greater than max/min of rating scale
+           rating = if_else(rating < 1, 1, rating))
+}
+```
+
+## 1. Make a dataframe with our simulated data
+
+1.  Input more participants (50 per condition) with a bigger average difference between conditions (2 points), with variance between participants at 2 points (sigma)
+
+```{r}
+# YOUR CODE HERE
+
+
+```
+
+## 2. Creating the second experiment
+
+Now create a new column in your tibble for the second experiment.
+
+Goals: practicing tidyverse and simulating data
+
+Here, the rating of the *simulated* second experiment data is each participants first rating with some variance (people are likely to not say exactly the same thing, but their scores are likely to be similar)
+
+TIPS:
+
+Recommend running `rowwise()` in your pipe before creating the new condition to force tidyverse to sample a new random value for each row
+
+Make your next dataframe A NEW NAME so that you're not rewriting old dataframes with new ones and getting confused
+
+Hint: you can use `to_sample = -3:3` with the `sample` function and specifies the possible values you want to sample from
+
+```{r}
+# YOUR CODE HERE
+
+```
+
+## 3. Make a plot and compute the correlation
+
+Examine how the ratings are correlated across these simulations, by making a plot
+
+```{R}
+# YOUR CODE HERE
+
+```
+
+Hint: 1. Try out `geom_point` which shows you the exact values 2. Then try out `geom_jitter` which shows you the same data with some jitter around height / width
+
+Bonus: 3. Use `alpha` to make your dots transparent 4. Use `ylab` and `xlab` to make nice axes labels 5. Use geom_smooth() to look at the trend_line 6. Try making each dot different by condition
+
+Now examine -- how correlated are your responses? What is your test-retest reliability?
+
+```{R}
+```
+
+Hint: You'll need a correlation function - `cor.test` Bonus: You can also find a ggplot function to overlay the correlation on top of your plot
+
+## 4. Make another plot -- like the one from the chapter, where each line should connect an individual subject
+
+1.  First, Use pivot_longer to make the dataframe longer
+2.  Use facet_wrap(\~condition) to make two plots, one for `milk_first` and one for `tea_first`
+3.  Use geom_line -- with grouping specification by sub_id -- to connect individual datapoints for each condition
+
+Hint aes(group = sub_id))
+
+```{r}
+# YOUR CODE HERE
+# Make new, longer dataframe 
+
+```
+
+```{r}
+# YOUR PLOTTING CODE HERE
+
+```
+
+# 5. OK, now go back and change things and test your intuition about how this works.
+
+How does reliability change if you increase the variance between participants (sigma) in the first experiment simulated data?
+
+How does reliability change if you change how much variation you allow between the first and second experiment?
+
+How does reliability change if you increase sample size, holding those things constant?
+
+Hint: copy the code from above where you made your new dataframe with experiment number 2, copy the correlation computation code, and just run this block over an over, modifying the code (command-shift-enter on Mac runs the block)
+
+```{r}
+# YOUR CODE HERE
+
+
+```

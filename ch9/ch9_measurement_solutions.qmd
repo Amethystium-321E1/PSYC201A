@@ -1,0 +1,206 @@
+---
+title: "Measurement Simulations: Test-Retest Reliability"
+author: Bria Long, 10/23/24 
+format: html
+editor: visual
+---
+
+# Setup
+
+## Learning goals
+
+1.  Simulate data for two experiments and compute test-retest reliability
+2.  Practice some tidyverse (`pivot_longer`, `mutate`, `select`, and add onto existing base ggplot skills (`geom_point`, `geom_jitter`, `facet_wrap`, `geom_line`)
+3.  Run a basic correlation (`cor.test` and interpret differences in observed reliability based on differences in the simulated data)
+
+## Import the libraries we need
+
+```{r}
+library(tidyverse)
+library(ggplot2) # plotting
+
+```
+
+## Define the simulation function - same as before
+
+This makes "tea data", a tibble (dataframe) where there are a certain number of people in each condition (default = 48, i.e., n_total, with n_total/2 in each half)
+
+The averages of the two conditions are separated by a known effect ("delta") with some variance ("sigma"). You can change these around since we're simulating data!
+
+```{r}
+set.seed(123) # good practice to set a random seed, or else different runs get you different results
+```
+
+```{r}
+make_tea_data <- function(n_total = 48,
+                          sigma = 1.25,
+                          delta = 1.5) {
+  n_half <- n_total / 2
+  tibble(condition = c(rep("milk first", n_half), rep("tea first", n_half)),
+         rating = c(round(
+           rnorm(n_half, mean = 3.5 + delta, sd = sigma)
+         ),
+         round(rnorm(
+           n_half, mean = 3.5, sd = sigma
+         )))) |>
+    mutate(rating = if_else(rating > 10, 10, rating),
+           # truncate if greater than max/min of rating scale
+           rating = if_else(rating < 1, 1, rating)) |>
+  rownames_to_column() %>% # added for this excercise
+  rename(sub_num = rowname)
+}
+```
+
+## Make a dataframe with our simulated data
+
+Input more participants (60 per condition) with a bigger average difference between conditions (2 points), with variance between participants at 2 points (sigma)
+
+```{r}
+# YOUR CODE HERE
+this_tea_data <- make_tea_data(n_total = 60, delta = 2, sigma = 2) 
+
+```
+
+## Creating the second experiment
+
+Now create a new column in your tibble for the second experiment.
+
+Here, the rating of the *simulated* second experiment data is each participants first rating with some variance (people are likely to not say exactly the same thing)
+
+TIPS:
+
+Strongly recommend running `rowwise()` in your pipe before creating the new condition to force tidyverse to sample a new random value for each row
+
+Make your next dataframe A NEW NAME so that you're not rewriting old dataframes with new ones and getting confused
+
+Hint: you can use `to_sample = -3:3` with the `sample` function and specifies the possible values you want to sample from
+
+
+```{r}
+# YOUR CODE HERE
+to_sample = -3:3
+all_tea_data <- this_tea_data %>%
+  rowwise() %>%
+  rename(rating_exp_1 = rating) %>%
+  mutate(difference = sample(to_sample,1)) %>%
+  mutate(rating_exp_2 = rating_exp_1 + difference) %>%
+  # make sure ratings can't go above/below limits of scale
+  mutate(rating_exp_2 = if_else(rating_exp_2 > 10, 10, rating_exp_2),
+           # truncate if greater than max/min of rating scale
+           rating_exp_2 = if_else(rating_exp_2 < 1, 1, rating_exp_2))
+```
+
+## Make a plot
+
+Examine how the ratings are correlated across these simulations
+
+1.  Make a plot relating these two variables
+2.  Try out `geom_point` which shows you the exact values
+3.  Then try out `geom_jitter` which shows you the same data with some jitter around height / width
+
+Extra: 3. Use `alpha` to make your dots transparent 4. Use `ylab` and `xlab` to make nice axes labels 5. Use geom_smooth() to look at the trend_line 6. Try making each dot different by condition
+
+```{R}
+# YOUR CODE HERE
+ggplot(all_tea_data, aes(x=rating_exp_1, y=rating_exp_2)) +
+  geom_jitter(alpha=.8, height=.1, width=.1) +
+  ylab('Experiment 2') +
+  xlab('Experiment 1') +
+  ggtitle('Test-retest reliability') +
+  geom_smooth(method='lm') +
+  ggpubr::stat_cor(method='pearson')
+```
+
+Hint: use geom_point in ggplot2 or you can use qqplot
+
+Now examine -- how correlated are your responses? What is your test-retest reliability? Hint: You'll need a correlation function - cor.test You can also find a ggplot function to overlay the correlation on top of your plot
+
+```{R}
+cor.test(all_tea_data$rating_exp_1, all_tea_data$rating_exp_2)
+```
+
+## Make another plot -- like the one from the chapter, where each line should connect an individual subject
+
+1.  First, Use pivot_longer to make the dataframe longer
+2.  Use facet_wrap(\~condition) to make two plots, one for `milk_first` and one for `tea_first`
+3.  Use geom_line -- with grouping specification by sub_id -- to connect individual datapoints for each condition
+
+Hint aes(group = sub_id))
+
+```{r}
+# Make new, longer dataframe - your code here
+all_tea_data_longer <- all_tea_data %>%
+  pivot_longer(cols = c('rating_exp_1','rating_exp_2'), names_to = "experiment", values_to='rating')
+```
+
+```{r}
+ggplot(all_tea_data_longer, aes(x=experiment, y=rating, col=condition)) +
+  geom_point(alpha=.8) +
+  geom_line(aes(group=sub_num)) +
+  ylab('Experiment 2') +
+  xlab('Experiment 1') +
+  ggtitle('Test-retest reliability') +
+  facet_wrap(~condition)
+```
+
+# OK, now go back and change things and test your intuition about how this works.
+
+How does reliability change if you increase the variance between participants (sigma) in the first experiment simulated data?
+
+How does reliability change if you change how much variation you allow between the first and second experiment?
+
+How does reliability change if you increase sample size, holding those things constant?
+
+Hint: copy the code from above where you made your new dataframe with experiment number 2, copy the correlation computation code, and just run this block over an over, modifying the code (command-shift-enter on Mac runs the block)
+
+```{r}
+
+to_sample = -4:4
+simulated_data <- make_tea_data(n_total = 100, delta = 2, sigma = 5) %>%
+  rowwise() %>%
+  rename(rating_exp_1 = rating) %>%
+  mutate(difference_between_experiments = sample(to_sample,1)) %>%
+  mutate(rating_exp_2 = rating_exp_1 + difference_between_experiments) %>%
+  # make sure ratings can't go above/below limits of scale
+  mutate(rating_exp_2 = if_else(rating_exp_2 > 10, 10, rating_exp_2),
+           # truncate if greater than max/min of rating scale
+           rating_exp_2 = if_else(rating_exp_2 < 1, 1, rating_exp_2))
+
+
+cor.test(simulated_data$rating_exp_1, simulated_data$rating_exp_2)
+```
+
+# Now let's compute split-half reliability in one experiment
+
+Go back to the first dataframe you created (before you added experiment number 2) Split it in two halves and correlate the rating scores from each half (hint: use `sample_frac` and `anti_join`)
+
+What drives reliability up or down here? Is it the same thing?
+
+```{r}
+##
+first_half <- this_tea_data %>%
+  group_by(condition) %>%
+  sample_frac(.5)
+
+second_half <- this_tea_data %>%
+  group_by(condition) %>%
+  anti_join(first_half)
+
+split_half_correlation = cor.test(second_half$rating, first_half$rating)
+split_half_correlation_out = split_half_correlation$estimate
+```
+
+# Extra sections as reference
+
+## Spearman brown correction for split half reliability
+
+This corrects for the fact that we have fewer items when we split the text
+
+Formula from: https://en.wikipedia.org/wiki/Spearman%E2%80%93Brown_prediction_formula
+
+Hint: to get out the actual value from cor.test, you need to get the `estimate` field from the output
+
+```{r}
+corrected_split_half = (2*split_half_correlation_out) / (1+split_half_correlation_out)
+```
+
