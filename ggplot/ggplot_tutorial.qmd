@@ -1,0 +1,195 @@
+---
+title: 'ggplot2 intro exercises'
+author: "Mike Frank, Edited Bria Long"
+date: "Fall 2024"
+output: html
+---
+
+This is an exercise on using `ggplot2` that was adapted by Mike Frank from the_grammar.R on [http://had.co.nz/ggplot2](); this was adapted for Psych 251 at Stanford and now Psych 201a at UCSD.
+
+# Install packages
+
+```{r}
+library(tidyverse)
+library(ggthemes) # allows you to add new color themes
+```
+
+# Exploring ggplot2 using `qplot`
+
+We'll start by using `qplot`. `qplot` is the easy interface, meant to replace `plot`. You can give it simple `qplot(x,y)` examples, or slightly more complex examples like `qplot(x, y, col=grp, data=d)`.
+
+We're going to be using the `diamonds` dataset. This is a set of measurements of diamonds, along with their price etc.
+
+```{r}
+head(diamonds)
+qplot(diamonds$carat, diamonds$price)
+```
+
+This allows you to make a histogram
+
+```{r}
+qplot(diamonds$price)
+```
+
+Scatter plots are trivial, and easy to add features to. The code below modifies this plot so that it uses the dataframe rather than working from variables in the general namespace (good to get away from retyping `diamonds$` every time you reference a variable).
+
+```{r}
+qplot(data = diamonds, price)
+```
+
+Now you can try adding clarity and cut, using shape and color as your visual variables.
+
+```{r}
+qplot(
+  data = diamonds,
+  x = carat, y = price, shape = clarity, color = cut
+)
+```
+
+Cooooooooooooool!
+
+# More complex with ggplot
+
+`ggplot` is just a way of building `qplot` calls up more systematically. It's sometimes easier to use and sometimes a bit more complicated. What I want to show off here is the functionality of being able to build up complex plots with multiple elements. You can actually do this using `qplot` pretty easily, but there are a few things that are hard to do.
+
+`ggplot` is the basic call, where you specify A) a dataframe and B) an aesthetic (`aes`) mapping from variables in the plot space to variables in the dataset.
+
+```{r}
+p <- ggplot(diamonds, aes(x = carat, y = price)) # first you set the aesthetic and dataset
+
+p <- p + geom_point() # then you add geoms
+
+p <- p + geom_point(aes(colour = carat)) # and you can keep doing this to add layers to the plot
+
+p
+```
+
+Now you can try writing this as a single set of additions (e.g. one line of R code, though you can put in linebreaks). This is the most common workflow for me.
+
+```{r}
+## Your code here
+p_test <- ggplot(diamonds, aes(x = carat, y = price)) + geom_point(aes(colour = carat))
+p_test
+```
+
+# Facets
+
+Let's try out another version of the `qplot` example above. Here's the last qplot example now done ggplot.
+
+```{r}
+ggplot(
+  diamonds,
+  aes(
+    x = carat, y = price,
+    shape = clarity, color = cut
+  )
+) +
+  geom_point()
+```
+
+One of the primary benefits of `ggplot2` is the use of facets - also known as small multiples in the Tufte vocabulary. That last plot was probably hard to read. Facets could make it better. Try adding `facet_grid(x ~ y)`. `x ~ y` means row facets are by `x`, column facets by `y`.
+
+```{r}
+## YOUR CODE HERE
+ggplot(
+  diamonds,
+  aes(
+    x = carat, y = price,
+    shape = clarity, color = cut
+  )
+) + geom_point() + facet_grid(clarity ~ cut)
+```
+
+But facets can also get overwhelming. Try to strike a good balance between color, shape, and faceting.
+
+HINT: `facet_grid(. ~ x)` puts x on the columns, but `facet_wrap(~ x)` (no dot) *wraps* the facets.
+
+```{r}
+ggplot(
+  diamonds,
+  aes(
+    x = carat, y = price,
+    shape = clarity, color = cut
+  )
+) + geom_point() + facet_wrap(~ clarity)
+```
+
+# Geoms
+
+As you've seen above, the basic unit of a ggplot plot is a "geom" - a mapping between data (via an "aesthetic") and a particular geometric configuration on coordinate axes.
+
+Let's try adding some geoms and manipulating their parameters. One combo I really like is a scatterplot with a smoothing layer (`geom_smooth`). Try adding one onto this plot.
+
+```{r}
+ggplot(diamonds, aes(x = carat, y = price)) +
+  geom_point(shape = ".") +
+  facet_grid(cut ~ clarity) + geom_smooth()
+## ADD TO THIS PLOT WITH YOUR CODE HERE
+```
+
+CHALLENGE: You could also try starting with a histogram and adding densities. (`geom_density`), Try [this link](https://stackoverflow.com/questions/5688082/ggplot2-overlay-histogram-with-density-curve).
+
+```{r}
+qplot(data = diamonds, geom = 'blank') +   
+  geom_line(
+    aes(x = price, y = ..density.., colour = 'Empirical'),
+    stat = 'density'
+  ) +  
+  stat_function(
+    fun = dnorm,
+    args = list(mean = mean(diamonds$price), sd = sd(diamonds$price)),
+    aes(colour = 'Normal')
+  ) +                       
+  geom_histogram(
+    aes(x = price, y = ..density..),
+    alpha = 0.4,
+    bins = 30
+  )
+
+```
+
+# Themes and plot cleanup
+
+I like a slightly cleaner look to my plots. Luckily, ggplot allows you to add "themes" to your plots. Try doing the same plot but adding `+ theme_bw()` or `+ theme_classic()`. Different themes work better for different applications, in my experience. My favorite right now is `ggthemes::theme_few`.
+
+You can also try different color scales. Experiment with `scale_color_...` - try writing that and hitting TAB for autocomplete options. Check out the help on this.
+
+You can also try transparency/different point sizes to clean up scatterplots. Try `alpha = .1` or `pch = "."` to make transparent or small points.
+
+Finally, don't forget to "fix the axis labels"!
+
+Here's a somewhat ugly plot - see if you can make it look awesome.
+
+```{r}
+ggplot(diamonds, aes(
+  x = carat, y = price,
+  col = cut
+)) +
+  geom_point() +
+  facet_wrap(~clarity)
+```
+
+```{r}
+## YOUR CODE HERE -- no "correct" answer, just play around with making it look better
+ggplot(diamonds, aes(
+  x = carat, y = price,
+  col = cut
+)) +
+  geom_point(alpha = 0.3, pch="$") +
+  facet_wrap(~clarity) +                        
+  scale_color_wsj() + 
+  theme_wsj() + 
+  labs(
+    title = "Diamond Price vs. Carat by Clarity and Cut",
+    x = "Carat",
+    y = "Price (USD)"
+  )
+# Change facets, transparency, fix axis labels, etc.
+```
+
+```{r}
+install.packages("quarto")
+library(quarto)
+quarto_render("ggplot_tutorial.qmd", output_format = "pdf")
+```
+
